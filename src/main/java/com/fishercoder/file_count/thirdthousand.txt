@@ -1,0 +1,359 @@
+Total files count: 3
+==================================================
+File: _2673.java
+Line count: 110
+==================================================
+Content:
+package com.fishercoder.solutions.thirdthousand;
+
+public class _2673 {
+    public static class Solution1 {
+        /*
+         * My completely original solution, although verbose and could be further optimized.
+         * Practice makes perfect!
+         */
+        class TreeNodeWithCost {
+            int val;
+            int cost;
+            int costSumFromRootToThisNode;
+            int maxCostFromThisNodeToAllPossibleLeafNodes;
+            TreeNodeWithCost left;
+            TreeNodeWithCost right;
+
+            public TreeNodeWithCost(int val, int cost) {
+                this.val = val;
+                this.cost = cost;
+                this.costSumFromRootToThisNode = cost;
+            }
+        }
+
+        int maxCostFromRootToLeaf = 0;
+        int minIncs = 0;
+
+        public int minIncrements(int n, int[] cost) {
+            TreeNodeWithCost root = new TreeNodeWithCost(1, cost[0]);
+            preOrderBuildTree(root, n, cost, 1);
+            inOrderFindMaxCostPath(root);
+            // in order to do the minimum increments, we want to increment as many times as possible
+            // on the nodes as close to the root as possible
+            // but to how many?
+            // then we need to know the maximum cost of all paths from each node to all of its
+            // possible leaf nodes
+            // the difference is the number of increments we can do on this node
+            postOrderFindMaxCostForEachNode(root);
+            preOrderToIncrementCost(root);
+            return minIncs;
+        }
+
+        private void preOrderToIncrementCost(TreeNodeWithCost root) {
+            if (root == null) {
+                return;
+            }
+            int incsNeeded = maxCostFromRootToLeaf - root.maxCostFromThisNodeToAllPossibleLeafNodes;
+            minIncs += incsNeeded;
+            if (incsNeeded > 0) {
+                root.costSumFromRootToThisNode += incsNeeded;
+                preOrderToUpdateCostSums(root, incsNeeded);
+            }
+            preOrderToIncrementCost(root.left);
+            preOrderToIncrementCost(root.right);
+        }
+
+        private void preOrderToUpdateCostSums(TreeNodeWithCost root, int incsNeeded) {
+            if (root == null) {
+                return;
+            }
+            root.costSumFromRootToThisNode += incsNeeded;
+            root.maxCostFromThisNodeToAllPossibleLeafNodes += incsNeeded;
+            preOrderToUpdateCostSums(root.left, incsNeeded);
+            preOrderToUpdateCostSums(root.right, incsNeeded);
+        }
+
+        private int postOrderFindMaxCostForEachNode(TreeNodeWithCost node) {
+            if (node == null) {
+                return 0;
+            }
+            int leftMaxCost = postOrderFindMaxCostForEachNode(node.left);
+            int rightMaxCost = postOrderFindMaxCostForEachNode(node.right);
+            if (leftMaxCost == 0 && rightMaxCost == 0) {
+                // this means this node is a leaf node
+                node.maxCostFromThisNodeToAllPossibleLeafNodes = node.costSumFromRootToThisNode;
+            } else {
+                // if it's not leaf node, then we take the bigger one from left and right
+                node.maxCostFromThisNodeToAllPossibleLeafNodes =
+                        Math.max(leftMaxCost, rightMaxCost);
+            }
+            return node.maxCostFromThisNodeToAllPossibleLeafNodes;
+        }
+
+        private void inOrderFindMaxCostPath(TreeNodeWithCost root) {
+            if (root == null) {
+                return;
+            }
+            inOrderFindMaxCostPath(root.left);
+            if (root.left == null && root.right == null) {
+                maxCostFromRootToLeaf =
+                        Math.max(maxCostFromRootToLeaf, root.costSumFromRootToThisNode);
+            }
+            inOrderFindMaxCostPath(root.right);
+        }
+
+        private int preOrderBuildTree(TreeNodeWithCost root, int n, int[] cost, int base) {
+            if (root == null || base * 2 >= n) {
+                return 0;
+            }
+
+            root.left = new TreeNodeWithCost(base * 2, cost[base * 2 - 1]);
+            root.left.costSumFromRootToThisNode = root.left.cost + root.costSumFromRootToThisNode;
+            root.right = new TreeNodeWithCost(base * 2 + 1, cost[base * 2]);
+            root.right.costSumFromRootToThisNode = root.right.cost + root.costSumFromRootToThisNode;
+
+            preOrderBuildTree(root.left, n, cost, base * 2);
+            preOrderBuildTree(root.right, n, cost, base * 2 + 1);
+            return root.costSumFromRootToThisNode;
+        }
+    }
+}
+
+
+==================================================
+File: _2812.java
+Line count: 126
+==================================================
+Content:
+package com.fishercoder.solutions.thirdthousand;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
+public class _2812 {
+    public static class Solution1 {
+        /*
+         * A great problem, credit: https://leetcode.com/problems/find-the-safest-path-in-a-grid/editorial/
+         * <p>
+         * BFS twice:
+         * 1. once: to build the safeness factor for each cell;
+         * 2. second time: check if there's a valid path from that cell;
+         */
+        final int[] dirs = new int[] {0, 1, 0, -1, 0};
+
+        public int maximumSafenessFactor(List<List<Integer>> grid) {
+            int n = grid.size();
+            int[][] mat = new int[n][n];
+            Queue<int[]> multiSourceQueue = new LinkedList<>();
+
+            // To make modifications and navigation easier, the grid is converted into a 2-d array.
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    if (grid.get(i).get(j) == 1) {
+                        // Push thief coordinates to the queue
+                        multiSourceQueue.add(new int[] {i, j});
+                        // Mark thief cell with 0
+                        mat[i][j] = 0;
+                    } else {
+                        // Mark empty cell with -1
+                        mat[i][j] = -1;
+                    }
+                }
+            }
+
+            // Calculate safeness factor for each cell using BFS
+            while (!multiSourceQueue.isEmpty()) {
+                int size = multiSourceQueue.size();
+                while (size-- > 0) {
+                    int[] curr = multiSourceQueue.poll();
+                    // Check neighboring cells
+                    for (int k = 0; k < dirs.length - 1; k++) {
+                        int di = curr[0] + dirs[k];
+                        int dj = curr[1] + dirs[k + 1];
+                        int val = mat[curr[0]][curr[1]];
+                        // Check if the neighboring cell is valid and unvisited
+                        if (isValidCell(mat, di, dj) && mat[di][dj] == -1) {
+                            // Update safeness factor and push to the queue
+                            mat[di][dj] = val + 1;
+                            multiSourceQueue.add(new int[] {di, dj});
+                        }
+                    }
+                }
+            }
+
+            // Binary search for maximum safeness factor
+            int start = 0;
+            int end = 0;
+            int res = -1;
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    // Set end as the maximum safeness factor possible
+                    end = Math.max(end, mat[i][j]);
+                }
+            }
+
+            while (start <= end) {
+                int mid = start + (end - start) / 2;
+                if (isValidSafeness(mat, mid)) {
+                    // Store valid safeness and search for larger ones
+                    res = mid;
+                    start = mid + 1;
+                } else {
+                    end = mid - 1;
+                }
+            }
+            return res;
+        }
+
+        // Check if a path exists with given minimum safeness value
+        private boolean isValidSafeness(int[][] grid, int minSafeness) {
+            int n = grid.length;
+
+            // Check if the source and destination cells satisfy minimum safeness
+            if (grid[0][0] < minSafeness || grid[n - 1][n - 1] < minSafeness) {
+                return false;
+            }
+
+            Queue<int[]> traversalQueue = new LinkedList<>();
+            traversalQueue.add(new int[] {0, 0});
+            boolean[][] visited = new boolean[n][n];
+            visited[0][0] = true;
+
+            // BFS to find a valid path
+            while (!traversalQueue.isEmpty()) {
+                int[] curr = traversalQueue.poll();
+                if (curr[0] == n - 1 && curr[1] == n - 1) {
+                    return true; // Valid path found
+                }
+                // Check neighboring cells
+                for (int k = 0; k < dirs.length - 1; k++) {
+                    int di = curr[0] + dirs[k];
+                    int dj = curr[1] + dirs[k + 1];
+                    // Check if the neighboring cell is valid, unvisited and satisfying minimum
+                    // safeness
+                    if (isValidCell(grid, di, dj)
+                            && !visited[di][dj]
+                            && grid[di][dj] >= minSafeness) {
+                        visited[di][dj] = true;
+                        traversalQueue.add(new int[] {di, dj});
+                    }
+                }
+            }
+
+            return false; // No valid path found
+        }
+
+        // Check if a given cell lies within the grid
+        private boolean isValidCell(int[][] mat, int i, int j) {
+            int n = mat.length;
+            return i >= 0 && j >= 0 && i < n && j < n;
+        }
+    }
+}
+
+
+==================================================
+File: _2049.java
+Line count: 101
+==================================================
+Content:
+package com.fishercoder.solutions.thirdthousand;
+
+import com.fishercoder.common.classes.TreeNode;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class _2049 {
+    public static class Solution1 {
+        /*
+         * My completely original solution.
+         * Practice makes perfect!
+         */
+        public int countHighestScoreNodes(int[] parents) {
+            Map<Integer, TreeNode> valToNodeMap = new HashMap<>();
+            TreeNode root = buildBinaryTree(parents, valToNodeMap);
+
+            // it'll be handy if we can cache the number of children each node has as we'll do this
+            // many times, so we can quickly calculate the score for each node
+            // key is the node since each node's value is unique, value if the number of children
+            // this node has
+            Map<Integer, Long> nodeCountMap = new HashMap<>();
+            // naturally we should use post-order traversal since we need to count the children for
+            // each child first, then we can roll up to add one to get the number of children for
+            // the root node
+            long allNodeCount = postOrder(root, nodeCountMap);
+            nodeCountMap.put(root.val, allNodeCount);
+
+            // now calculate the score of each node
+            List<Long> scoreList = new ArrayList<>();
+            long highestScore = 0;
+            for (int i = 0; i < parents.length; i++) {
+                long score = computeScore(i, nodeCountMap, valToNodeMap);
+                highestScore = Math.max(score, highestScore);
+                scoreList.add(score);
+            }
+            int count = 0;
+            for (long score : scoreList) {
+                if (score == highestScore) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        private Long computeScore(
+                int nodeVal, Map<Integer, Long> nodeCountMap, Map<Integer, TreeNode> nodeValueMap) {
+            // since this is a binary tree, so, at most, removing a node, it'll split the original
+            // tree into three disjoint trees
+            TreeNode node = nodeValueMap.get(nodeVal);
+            Long leftSubtree = 1L;
+            Long rightSubtree = 1L;
+            Long parentSubtree = 1L;
+            if (node.left != null) {
+                if (nodeCountMap.get(node.left.val) > 0) {
+                    leftSubtree = nodeCountMap.get(node.left.val);
+                }
+            }
+            if (node.right != null) {
+                if (nodeCountMap.get(node.right.val) > 0) {
+                    rightSubtree = nodeCountMap.get(node.right.val);
+                }
+            }
+            if (nodeVal != 0) {
+                long diff = nodeCountMap.get(0) - nodeCountMap.get(nodeVal);
+                if (diff > 0) {
+                    parentSubtree = diff;
+                }
+            }
+            return leftSubtree * rightSubtree * parentSubtree;
+        }
+
+        private long postOrder(TreeNode root, Map<Integer, Long> map) {
+            if (root == null) {
+                return 0;
+            }
+            long leftCount = postOrder(root.left, map);
+            long rightCount = postOrder(root.right, map);
+            long sum = leftCount + rightCount + 1;
+            map.put(root.val, sum);
+            return sum;
+        }
+
+        private TreeNode buildBinaryTree(int[] parents, Map<Integer, TreeNode> map) {
+            map.put(0, new TreeNode(0));
+            for (int i = 1; i < parents.length; i++) {
+                TreeNode childNode = map.getOrDefault(i, new TreeNode(i));
+                TreeNode parentNode = map.getOrDefault(parents[i], new TreeNode(parents[i]));
+                if (parentNode.left == null) {
+                    parentNode.left = childNode;
+                } else {
+                    parentNode.right = childNode;
+                }
+                map.put(parents[i], parentNode);
+                map.put(i, childNode);
+            }
+            return map.get(0);
+        }
+    }
+}
+
+

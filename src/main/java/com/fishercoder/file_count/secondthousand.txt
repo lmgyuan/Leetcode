@@ -1,0 +1,1604 @@
+Total files count: 12
+==================================================
+File: _1209.java
+Line count: 155
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Stack;
+
+public class _1209 {
+    public static class Solution1 {
+        public String removeDuplicates(String s, int k) {
+            Stack<Character> stack = new Stack<>();
+            char c = s.charAt(0);
+            stack.push(c);
+            int count = 1;
+            for (int i = 1; i < s.length(); i++) {
+                if (s.charAt(i) == c) {
+                    count++;
+                    stack.push(s.charAt(i));
+                    if (count == k) {
+                        while (!stack.isEmpty() && stack.peek() == c) {
+                            stack.pop();
+                        }
+                        count = 0;
+                        if (!stack.isEmpty()) {
+                            c = stack.peek();
+                            while (!stack.isEmpty() && c == stack.peek()) {
+                                count++;
+                                stack.pop();
+                            }
+                            int tmp = count;
+                            while (tmp-- > 0) {
+                                stack.push(c);
+                            }
+                        }
+                    }
+                } else {
+                    c = s.charAt(i);
+                    stack.push(s.charAt(i));
+                    count = 1;
+                }
+            }
+            StringBuilder sb = new StringBuilder();
+            while (!stack.isEmpty()) {
+                sb.append(stack.pop());
+            }
+            return sb.reverse().toString();
+        }
+    }
+
+    public static class Solution2 {
+        public String removeDuplicates(String s, int k) {
+            StringBuilder sb = new StringBuilder();
+            int dupCount = 0;
+            for (int i = 0; i < s.length(); i++) {
+                if (sb.length() != 0 && sb.charAt(sb.length() - 1) == s.charAt(i)) {
+                    dupCount++;
+                } else {
+                    dupCount = 1;
+                }
+                sb.append(s.charAt(i));
+                if (dupCount == k) {
+                    sb.setLength(sb.length() - k);
+                    if (i + 1 < s.length()) {
+                        dupCount = 0;
+                        for (int j = sb.length() - 1; j >= 0; j--) {
+                            if (sb.charAt(j) == s.charAt(i + 1)) {
+                                dupCount++;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return sb.toString();
+        }
+    }
+
+    public static class Solution3 {
+        /*
+         * My completely original solution on 1/6/2021.
+         */
+        class CharCount {
+            char c;
+            int count;
+
+            public CharCount(char c, int count) {
+                this.c = c;
+                this.count = count;
+            }
+        }
+
+        public String removeDuplicates(String s, int k) {
+            Deque<CharCount> stack = new LinkedList<>();
+            for (char c : s.toCharArray()) {
+                if (stack.isEmpty()) {
+                    stack.addLast(new CharCount(c, 1));
+                } else {
+                    if (stack.peekLast().c == c && stack.peekLast().count + 1 == k) {
+                        stack.pollLast();
+                    } else if (stack.peekLast().c == c) {
+                        stack.addLast(new CharCount(c, stack.pollLast().count + 1));
+                    } else {
+                        stack.addLast(new CharCount(c, 1));
+                    }
+                }
+            }
+            StringBuilder sb = new StringBuilder();
+            while (!stack.isEmpty()) {
+                CharCount pair = stack.pollLast();
+                int count = pair.count;
+                while (count-- > 0) {
+                    sb.append(pair.c);
+                }
+            }
+            return sb.reverse().toString();
+        }
+    }
+
+    public static class Solution4 {
+        // my completely original solution on 6/19/2024
+        public String removeDuplicates(String s, int k) {
+            Deque<Pair> stack = new LinkedList<>();
+            for (char c : s.toCharArray()) {
+                if (!stack.isEmpty() && stack.peekLast().c == c) {
+                    Pair pair = stack.pollLast();
+                    pair.count = pair.count + 1;
+                    if (pair.count < k) {
+                        stack.addLast(pair);
+                    }
+                } else {
+                    stack.addLast(new Pair(c, 1));
+                }
+            }
+            StringBuilder sb = new StringBuilder();
+            while (!stack.isEmpty()) {
+                Pair pair = stack.pollLast();
+                int count = pair.count;
+                while (count-- > 0) {
+                    sb.append(pair.c);
+                }
+            }
+            return sb.reverse().toString();
+        }
+
+        class Pair {
+            char c;
+            int count;
+
+            public Pair(char c, int count) {
+                this.c = c;
+                this.count = count;
+            }
+        }
+    }
+}
+
+
+==================================================
+File: _1993.java
+Line count: 121
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class _1993 {
+    public static class Solution1 {
+        /*
+         * My completely original solution:
+         * 1. use hashmap1 to store num to node mapping;
+         * 2. use hashmap2 to store num to user lock mapping;
+         * 3. use hashmap3 to store child to parent mapping;
+         * 4. build the tree: make sure to retrieve the node from map if it exists, otherwise, the tree might be disconnected, i.e. leading to wrong ansers.
+         */
+        public static class LockingTree {
+            class TreeNode {
+                List<TreeNode> children;
+                int val;
+
+                public TreeNode(int val) {
+                    this.val = val;
+                    this.children = new ArrayList<>();
+                }
+            }
+
+            Map<Integer, TreeNode> map;
+            Map<TreeNode, TreeNode> childToParentMap;
+            Map<Integer, Integer> lockMap;
+            TreeNode root;
+
+            public LockingTree(int[] parent) {
+                this.map = new HashMap<>();
+                this.root = new TreeNode(0);
+                this.map.put(0, root);
+                this.childToParentMap = new HashMap<>();
+                constructTree(parent, map, childToParentMap);
+                this.lockMap = new HashMap<>();
+            }
+
+            private void constructTree(
+                    int[] parent,
+                    Map<Integer, TreeNode> map,
+                    Map<TreeNode, TreeNode> childToParentMap) {
+                for (int i = 1; i < parent.length; i++) {
+                    TreeNode parentNode = map.getOrDefault(parent[i], new TreeNode(parent[i]));
+                    TreeNode childNode = map.getOrDefault(i, new TreeNode(i));
+                    parentNode.children.add(childNode);
+                    map.put(parent[i], parentNode);
+                    map.put(i, childNode);
+                    childToParentMap.put(childNode, parentNode);
+                }
+            }
+
+            public boolean lock(int num, int user) {
+                if (lockMap.containsKey(num)) {
+                    return false;
+                } else {
+                    lockMap.put(num, user);
+                    return true;
+                }
+            }
+
+            public boolean unlock(int num, int user) {
+                if (!lockMap.containsKey(num)) {
+                    return false;
+                } else if (lockMap.get(num) == user || user == -1) {
+                    lockMap.remove(num);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            public boolean upgrade(int num, int user) {
+                if (hasLockedAncestor(num) || !hasOneLockedChild(num) || lockMap.containsKey(num)) {
+                    return false;
+                }
+                lock(num, user);
+                List<TreeNode> children = map.get(num).children;
+                for (TreeNode child : children) {
+                    unlockRegardlessUser(child);
+                }
+                return true;
+            }
+
+            private boolean hasOneLockedChild(int num) {
+                if (lockMap.containsKey(num)) {
+                    return true;
+                }
+                TreeNode node = map.get(num);
+                for (TreeNode child : node.children) {
+                    if (hasOneLockedChild(child.val)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            private boolean hasLockedAncestor(int num) {
+                TreeNode node = map.get(num);
+                while (childToParentMap.containsKey(node)) {
+                    TreeNode parent = childToParentMap.get(node);
+                    if (lockMap.containsKey(parent.val)) {
+                        return true;
+                    }
+                    node = parent;
+                }
+                return false;
+            }
+
+            private void unlockRegardlessUser(TreeNode treeNode) {
+                unlock(treeNode.val, -1);
+                for (TreeNode child : treeNode.children) {
+                    unlockRegardlessUser(child);
+                }
+            }
+        }
+    }
+}
+
+
+==================================================
+File: _1268.java
+Line count: 162
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class _1268 {
+    public static class Solution1 {
+        public List<List<String>> suggestedProducts(String[] products, String searchWord) {
+            TrieNode root = buildTrie(products);
+            List<List<String>> result = new ArrayList<>();
+            for (int i = 1; i <= searchWord.length(); i++) {
+                result.add(findTopThreeMatches(root, searchWord.substring(0, i)));
+            }
+            return result;
+        }
+
+        private List<String> findTopThreeMatches(TrieNode root, String searchTerm) {
+            List<String> result = new ArrayList<>();
+            TrieNode node = root;
+            for (char c : searchTerm.toCharArray()) {
+                if (node.children[c - 'a'] == null) {
+                    return result;
+                } else {
+                    node = node.children[c - 'a'];
+                }
+            }
+            if (node.isWord) {
+                result.add(searchTerm);
+            }
+            for (TrieNode child : node.children) {
+                if (child != null) {
+                    List<String> thisResult = dfs(child, searchTerm, new ArrayList<>());
+                    result.addAll(thisResult);
+                    if (result.size() >= 3) {
+                        return result.subList(0, 3);
+                    }
+                }
+            }
+            return result;
+        }
+
+        private List<String> dfs(TrieNode node, String substring, List<String> result) {
+            if (node.isWord) {
+                result.add(substring + node.c);
+                if (result.size() >= 3) {
+                    return result;
+                }
+            }
+            for (TrieNode child : node.children) {
+                if (child != null) {
+                    dfs(child, substring + node.c, result);
+                }
+            }
+            return result;
+        }
+
+        private TrieNode buildTrie(String[] products) {
+            TrieNode root = new TrieNode(' ');
+            for (String pro : products) {
+                insert(pro, root);
+            }
+            return root;
+        }
+
+        private void insert(String word, TrieNode root) {
+            TrieNode node = root;
+            for (int i = 0; i < word.length(); i++) {
+                char c = word.charAt(i);
+                if (node.children[c - 'a'] == null) {
+                    node.children[c - 'a'] = new TrieNode(c);
+                }
+                node = node.children[c - 'a'];
+            }
+            node.isWord = true;
+        }
+
+        class TrieNode {
+            TrieNode[] children;
+            boolean isWord;
+            char c;
+
+            public TrieNode(char c) {
+                this.c = c;
+                this.children = new TrieNode[26];
+            }
+        }
+    }
+
+    public static class Solution2 {
+        public List<List<String>> suggestedProducts(String[] products, String searchWord) {
+            TrieNode root = buildTrie(products);
+            List<List<String>> result = new ArrayList<>();
+            for (int i = 1; i <= searchWord.length(); i++) {
+                String searchTerm = searchWord.substring(0, i);
+                TrieNode tmp = root;
+                List<String> searchResult = new ArrayList<>();
+                for (int j = 0; j < searchTerm.length(); j++) {
+                    char c = searchTerm.charAt(j);
+                    if (tmp.children[c - 'a'] == null) {
+                        break;
+                    } else {
+                        tmp = tmp.children[c - 'a'];
+                    }
+                    if (j == searchTerm.length() - 1) {
+                        searchResult.addAll(findAllWords(tmp, searchTerm));
+                    }
+                }
+                result.add(searchResult.size() > 3 ? searchResult.subList(0, 3) : searchResult);
+            }
+            return result;
+        }
+
+        private List<String> findAllWords(TrieNode trieNode, String prefix) {
+            List<String> result = new ArrayList<>();
+            if (trieNode.isWord) {
+                result.add(prefix);
+                if (result.size() > 3) {
+                    return result;
+                }
+            }
+            for (TrieNode node : trieNode.children) {
+                if (node != null) {
+                    result.addAll(findAllWords(node, prefix + node.val));
+                    if (result.size() > 3) {
+                        return result;
+                    }
+                }
+            }
+            return result;
+        }
+
+        private TrieNode buildTrie(String[] words) {
+            TrieNode root = new TrieNode(' ');
+            for (String word : words) {
+                TrieNode tmp = root;
+                for (int i = 0; i < word.length(); i++) {
+                    char c = word.charAt(i);
+                    if (tmp.children[c - 'a'] == null) {
+                        tmp.children[c - 'a'] = new TrieNode(c);
+                    }
+                    tmp = tmp.children[c - 'a'];
+                    if (i == word.length() - 1) {
+                        tmp.isWord = true;
+                    }
+                }
+            }
+            return root;
+        }
+
+        public class TrieNode {
+            TrieNode[] children;
+            char val;
+            boolean isWord;
+
+            public TrieNode(char val) {
+                this.children = new TrieNode[26];
+                this.val = val;
+                this.isWord = false;
+            }
+        }
+    }
+}
+
+
+==================================================
+File: _1087.java
+Line count: 101
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+public class _1087 {
+    public static class Solution1 {
+        public String[] expand(String s) {
+            List<char[]> letters = parse(s);
+            List<String> result = backtracking(letters, 0, new StringBuilder(), new ArrayList<>());
+            String[] r = result.stream().toArray(String[]::new);
+            Arrays.sort(r);
+            return r;
+        }
+
+        private List<String> backtracking(
+                List<char[]> letters, int start, StringBuilder sb, List<String> result) {
+            if (start >= letters.size()) {
+                result.add(sb.toString());
+                return result;
+            }
+            char[] chars = letters.get(start);
+            for (int i = 0; i < chars.length; i++) {
+                sb.append(chars[i]);
+                backtracking(letters, start + 1, sb, result);
+                sb.setLength(sb.length() - 1);
+            }
+            return result;
+        }
+
+        private List<char[]> parse(String s) {
+            List<char[]> result = new ArrayList<>();
+            for (int i = 0; i < s.length(); i++) {
+                if (s.charAt(i) == '{') {
+                    int start = ++i;
+                    while (i < s.length() && s.charAt(i) != '}') {
+                        i++;
+                    }
+                    String[] strings = s.substring(start, i).split(",");
+                    char[] chars = new char[strings.length];
+                    for (int j = 0; j < strings.length; j++) {
+                        chars[j] = strings[j].charAt(0);
+                    }
+                    result.add(chars);
+                } else {
+                    char[] chars = new char[1];
+                    chars[0] = s.charAt(i);
+                    result.add(chars);
+                }
+            }
+            return result;
+        }
+    }
+
+    public static class Solution2 {
+        /*
+         * My completely original solution on 1/17/2022.
+         */
+        public String[] expand(String s) {
+            List<String> list = new ArrayList<>();
+            list.add("");
+            for (int i = 0; i < s.length(); i++) {
+                List<String> newList = new ArrayList<>();
+                if (s.charAt(i) == '{') {
+                    int j = i + 1;
+                    while (s.charAt(j) != '}') {
+                        j++;
+                    }
+                    String s2 = s.substring(i + 1, j);
+                    String[] chars = s2.split("\\,");
+                    for (String c : chars) {
+                        for (String sb : list) {
+                            sb += c;
+                            newList.add(sb);
+                        }
+                    }
+                    i = j;
+                } else {
+                    for (String sb : list) {
+                        sb += s.charAt(i);
+                        newList.add(sb);
+                    }
+                }
+                list.clear();
+                list.addAll(newList);
+            }
+            List<String> res = new ArrayList<>();
+            for (String sb : list) {
+                res.add(sb);
+            }
+            Collections.sort(res);
+            String[] ans = new String[res.size()];
+            for (int i = 0; i < res.size(); i++) {
+                ans[i] = res.get(i);
+            }
+            return ans;
+        }
+    }
+}
+
+
+==================================================
+File: _1110.java
+Line count: 173
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import com.fishercoder.common.classes.TreeNode;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+
+public class _1110 {
+    public static class Solution1 {
+        public List<TreeNode> delNodes(TreeNode root, int[] toDelete) {
+            Queue<TreeNode> queue = new LinkedList<>();
+            queue.offer(root);
+            for (int d : toDelete) {
+                delete(d, queue);
+            }
+            List<TreeNode> result = new ArrayList<>();
+            while (!queue.isEmpty()) {
+                result.add(queue.poll());
+            }
+            return result;
+        }
+
+        private void delete(int toDelete, Queue<TreeNode> queue) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                TreeNode curr = queue.poll();
+                if (delete(curr, toDelete, queue)) {
+                    if (toDelete != curr.val) {
+                        queue.offer(curr);
+                    }
+                    break;
+                } else {
+                    queue.offer(curr);
+                }
+            }
+        }
+
+        private boolean delete(TreeNode curr, int toDelete, Queue<TreeNode> queue) {
+            if (curr == null) {
+                return false;
+            } else {
+                if (curr.val == toDelete) {
+                    if (curr.left != null) {
+                        queue.offer(curr.left);
+                    }
+                    if (curr.right != null) {
+                        queue.offer(curr.right);
+                    }
+                    return true;
+                } else if (curr.left != null && curr.left.val == toDelete) {
+                    if (curr.left.left != null) {
+                        queue.offer(curr.left.left);
+                    }
+                    if (curr.left.right != null) {
+                        queue.offer(curr.left.right);
+                    }
+                    curr.left = null;
+                    return true;
+                } else if (curr.right != null && curr.right.val == toDelete) {
+                    if (curr.right.left != null) {
+                        queue.offer(curr.right.left);
+                    }
+                    if (curr.right.right != null) {
+                        queue.offer(curr.right.right);
+                    }
+                    curr.right = null;
+                    return true;
+                }
+                return delete(curr.left, toDelete, queue) || delete(curr.right, toDelete, queue);
+            }
+        }
+    }
+
+    public static class Solution2 {
+        // use BFS
+        public List<TreeNode> delNodes(TreeNode root, int[] toDelete) {
+            Set<Integer> deleteSet = new HashSet<>();
+            for (int d : toDelete) {
+                deleteSet.add(d);
+            }
+            Queue<TreeNode> q = new LinkedList<>();
+            q.offer(root);
+            List<TreeNode> forest = new ArrayList<>();
+            while (!q.isEmpty()) {
+                TreeNode curr = q.poll();
+
+                // process left child if any
+                if (curr.left != null) {
+                    // add it into the q first because we need to process it any ways as it might
+                    // have children that might not need to be deleted
+                    q.offer(curr.left);
+                    if (deleteSet.contains(curr.left.val)) {
+                        curr.left = null;
+                    }
+                }
+
+                // process right child if any
+                if (curr.right != null) {
+                    q.offer(curr.right);
+                    if (deleteSet.contains(curr.right.val)) {
+                        curr.right = null;
+                    }
+                }
+
+                // process this curr node: if it needs to be deleted, then add its non-null children
+                // into forest as we checked its children
+                // and we know they do not need to be deleted at this point
+                if (deleteSet.contains(curr.val)) {
+                    if (curr.left != null) {
+                        forest.add(curr.left);
+                    }
+                    if (curr.right != null) {
+                        forest.add(curr.right);
+                    }
+                }
+                // we don't add curr into forest here, otherwise there might be duplicate as we
+                // might have added them as their parent's child already
+            }
+            // at this point, only root might be missing, so we check root
+            if (!deleteSet.contains(root.val)) {
+                forest.add(root);
+            }
+            return forest;
+        }
+    }
+
+    public static class Solution3 {
+        // use DFS/Post-order traversal
+        // key to recognize to apply post-order traversal: we need to handle subtree/children first
+        // before handling the root.
+        // it is in this case, handle children first in case children do not need to be removed and
+        // the parent needs to be removed,
+        // so we avoid the case of prematurely removing the parent before handling its children
+        // credit: https://leetcode.com/problems/delete-nodes-and-return-forest/editorial/
+        public List<TreeNode> delNodes(TreeNode root, int[] toDelete) {
+            List<TreeNode> forest = new ArrayList<>();
+            if (root == null) {
+                return forest;
+            }
+            Set<Integer> deleteSet = new HashSet<>();
+            for (int d : toDelete) {
+                deleteSet.add(d);
+            }
+            root = postOrder(root, deleteSet, forest);
+            if (root != null) {
+                forest.add(root);
+            }
+            return forest;
+        }
+
+        private TreeNode postOrder(TreeNode root, Set<Integer> deleteSet, List<TreeNode> forest) {
+            if (root == null) {
+                return null;
+            }
+            root.left = postOrder(root.left, deleteSet, forest);
+            root.right = postOrder(root.right, deleteSet, forest);
+            if (deleteSet.contains(root.val)) {
+                if (root.left != null) {
+                    forest.add(root.left);
+                }
+                if (root.right != null) {
+                    forest.add(root.right);
+                }
+                // return null to its parent to delete the current node
+                return null;
+            }
+            return root;
+        }
+    }
+}
+
+
+==================================================
+File: _1171.java
+Line count: 108
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import com.fishercoder.common.classes.ListNode;
+import java.util.*;
+
+public class _1171 {
+    public static class Solution1 {
+        /*
+         * I keep shrinking the array whenever I found there's a range of sum that equals to zero
+         * until the size of the list doesn't change any more.
+         * This is probably not super efficient, but accepted on LeetCode.
+         */
+        public ListNode removeZeroSumSublists(ListNode head) {
+            List<Integer> list = convertToList(head);
+            int size;
+            do {
+                size = list.size();
+                list = shrinkList(list);
+            } while (list.size() != size);
+            return recoverLinkedList(list);
+        }
+
+        private ListNode recoverLinkedList(List<Integer> list) {
+            ListNode pre = new ListNode(-1);
+            ListNode tmp = pre;
+            for (int i = 0; i < list.size(); i++) {
+                tmp.next = new ListNode(list.get(i));
+                tmp = tmp.next;
+            }
+            return pre.next;
+        }
+
+        private List<Integer> convertToList(ListNode head) {
+            List<Integer> list = new ArrayList<>();
+            while (head != null) {
+                if (head.val != 0) {
+                    // if it's zero, we'll just ignore it, this can help us take care of the zero
+                    // values
+                    list.add(head.val);
+                }
+                head = head.next;
+            }
+            return list;
+        }
+
+        private List<Integer> shrinkList(List<Integer> list) {
+            for (int i = 0; i < list.size(); i++) {
+                int start = i;
+                List<Integer> preSumList = new ArrayList<>();
+                for (int k = 0; k < start; k++) {
+                    preSumList.add(0);
+                }
+                preSumList.add(list.get(i));
+                for (int k = i; k < list.size(); k++) {
+                    if (k > start) {
+                        Integer sum = preSumList.get(k - 1) + list.get(k);
+                        if (sum == 0) {
+                            List<Integer> shrinkedList = new ArrayList<>();
+                            for (int j = 0; j < start; j++) {
+                                shrinkedList.add(list.get(j));
+                            }
+                            for (int j = k + 1; j < list.size(); j++) {
+                                shrinkedList.add(list.get(j));
+                            }
+                            return shrinkedList;
+                        } else {
+                            preSumList.add(sum);
+                        }
+                    }
+                }
+            }
+            return list;
+        }
+    }
+
+    public static class Solution2 {
+        /*
+         * credit: https://leetcode.com/problems/remove-zero-sum-consecutive-nodes-from-linked-list/discuss/366337/Java-Iterative-and-Recursive-solution
+         * this post explains it all
+         * key of the hashmap is the prefix sum of all the nodes we've gone so far
+         * value of the hashmap is the corresponding linked list node
+         */
+        public ListNode removeZeroSumSublists(ListNode head) {
+            ListNode pre = new ListNode(-1);
+            ListNode curr = pre;
+            pre.next = head;
+            Map<Integer, ListNode> map = new HashMap<>();
+            int preSum = 0;
+            while (curr != null) {
+                preSum += curr.val;
+                if (map.containsKey(preSum)) {
+                    curr = map.get(preSum).next;
+                    int key = preSum + curr.val;
+                    while (key != preSum) {
+                        map.remove(key);
+                        curr = curr.next;
+                        key += curr.val;
+                    }
+                    map.get(preSum).next = curr.next;
+                } else {
+                    map.put(preSum, curr);
+                }
+                curr = curr.next;
+            }
+            return pre.next;
+        }
+    }
+}
+
+
+==================================================
+File: _1721.java
+Line count: 108
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import com.fishercoder.common.classes.ListNode;
+import java.util.ArrayList;
+import java.util.List;
+
+public class _1721 {
+    public static class Solution1 {
+        public ListNode swapNodes(ListNode head, int k) {
+            List<Integer> list = new ArrayList<>();
+            ListNode tmp = head;
+            while (tmp != null) {
+                list.add(tmp.val);
+                tmp = tmp.next;
+            }
+            int first = list.get(k - 1);
+            int size = list.size();
+            int second = list.get(size - k);
+            list.remove(k - 1);
+            list.add(k - 1, second);
+            list.remove(size - k);
+            list.add(size - k, first);
+            ListNode pre = new ListNode(-1);
+            tmp = pre;
+            for (int i = 0; i < list.size(); i++) {
+                pre.next = new ListNode(list.get(i));
+                pre = pre.next;
+            }
+            return tmp.next;
+        }
+    }
+
+    public static class Solution2 {
+        public ListNode swapNodes(ListNode head, int k) {
+            if (head == null || head.next == null) {
+                return head;
+            }
+
+            // find length of list
+            int n = 0;
+            ListNode current = head;
+            while (current != null) {
+                current = current.next;
+                n++;
+            }
+
+            int[] nums = new int[n];
+            current = head;
+            int i = 0;
+            while (current != null) {
+                nums[i++] = current.val;
+                current = current.next;
+            }
+            int firstIndex;
+            int secondIndex;
+            firstIndex = k;
+            secondIndex = n - k;
+            int temp = nums[firstIndex - 1];
+            nums[firstIndex - 1] = nums[secondIndex];
+            nums[secondIndex] = temp;
+            ListNode dummy = new ListNode(-1);
+            current = dummy;
+            for (i = 0; i < n; i++) {
+                ListNode node = new ListNode(nums[i]);
+                current.next = node;
+                current = current.next;
+            }
+            return dummy.next;
+        }
+    }
+
+    public static class Solution3 {
+        public ListNode swapNodes(ListNode head, int k) {
+            // O(n) linear time
+            /*
+               1. Calculate length of linked list
+               2. Initialize 3 ptrs, temp1 and temp2 used for pointing to nodes at k, (len - k + 1)
+               and temp3 used to iterate over the linked list
+            */
+            int length = 0;
+            int secondIndex;
+
+            ListNode temp1 = null;
+            ListNode temp2 = null;
+            ListNode temp3 = head;
+            while (temp3 != null) {
+                length++;
+                temp3 = temp3.next;
+            }
+
+            secondIndex = length - k + 1;
+            temp3 = head;
+            for (int i = 1; i <= length; i++) {
+                if (i == k) {
+                    temp1 = temp3;
+                }
+                if (i == secondIndex) {
+                    temp2 = temp3;
+                }
+                temp3 = temp3.next;
+            }
+            int value = temp1.val;
+            temp1.val = temp2.val;
+            temp2.val = value;
+            return head;
+        }
+    }
+}
+
+
+==================================================
+File: _1170.java
+Line count: 113
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import java.util.Arrays;
+
+public class _1170 {
+    public static class Solution1 {
+        /*
+         * Use simple iteration when finding counts
+         * Time: O(n^m) where m is the size of queries and n is the size of words
+         * Space: O(max(m, n) where m is the size of queries and n is the size of words)
+         */
+        public int[] numSmallerByFrequency(String[] queries, String[] words) {
+            int[] queriesMinFrequecies = new int[queries.length];
+            for (int i = 0; i < queries.length; i++) {
+                queriesMinFrequecies[i] = computeLowestFrequency(queries[i]);
+            }
+
+            int[] wordsMinFrequecies = new int[words.length];
+            for (int i = 0; i < words.length; i++) {
+                wordsMinFrequecies[i] = computeLowestFrequency(words[i]);
+            }
+            Arrays.sort(wordsMinFrequecies);
+
+            int[] result = new int[queries.length];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = search(wordsMinFrequecies, queriesMinFrequecies[i]);
+            }
+            return result;
+        }
+
+        private int search(int[] nums, int target) {
+            int count = 0;
+            for (int i = nums.length - 1; i >= 0; i--) {
+                if (nums[i] > target) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            return count;
+        }
+
+        private int computeLowestFrequency(String string) {
+            char[] str = string.toCharArray();
+            Arrays.sort(str);
+            String sortedString = new String(str);
+            int frequency = 1;
+            for (int i = 1; i < sortedString.length(); i++) {
+                if (sortedString.charAt(i) == sortedString.charAt(0)) {
+                    frequency++;
+                } else {
+                    break;
+                }
+            }
+            return frequency;
+        }
+    }
+
+    public static class Solution2 {
+        /*
+         * Use binary search when finding counts
+         * Time: O(n^logn) where m is the size of queries and n is the size of words
+         * Space: O(max(m, n) where m is the size of queries and n is the size of words)
+         */
+        public int[] numSmallerByFrequency(String[] queries, String[] words) {
+            int[] queriesMinFrequecies = new int[queries.length];
+            for (int i = 0; i < queries.length; i++) {
+                queriesMinFrequecies[i] = computeLowestFrequency(queries[i]);
+            }
+
+            int[] wordsMinFrequecies = new int[words.length];
+            for (int i = 0; i < words.length; i++) {
+                wordsMinFrequecies[i] = computeLowestFrequency(words[i]);
+            }
+            Arrays.sort(wordsMinFrequecies);
+
+            int[] result = new int[queries.length];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = binarySearch(wordsMinFrequecies, queriesMinFrequecies[i]);
+            }
+            return result;
+        }
+
+        private int binarySearch(int[] nums, int target) {
+            int left = 0;
+            int right = nums.length - 1;
+            while (left <= right) {
+                int mid = (left + right) / 2;
+                if (nums[mid] <= target) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
+            }
+            return nums.length - left;
+        }
+
+        private int computeLowestFrequency(String string) {
+            char[] str = string.toCharArray();
+            Arrays.sort(str);
+            String sortedString = new String(str);
+            int frequency = 1;
+            for (int i = 1; i < sortedString.length(); i++) {
+                if (sortedString.charAt(i) == sortedString.charAt(0)) {
+                    frequency++;
+                } else {
+                    break;
+                }
+            }
+            return frequency;
+        }
+    }
+}
+
+
+==================================================
+File: _1644.java
+Line count: 107
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import com.fishercoder.common.classes.TreeNode;
+
+public class _1644 {
+    public static class Solution1 {
+        /*
+         * This is my not so elegant but original solution to get it accepted.
+         */
+        boolean[] exists = new boolean[2];
+
+        public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+            exists(p, root, 0);
+            exists(q, root, 1);
+            if (!exists[0] || !exists[1]) {
+                return null;
+            }
+            return dfs(root, p, q);
+        }
+
+        private void exists(TreeNode target, TreeNode root, int index) {
+            if (root == null) {
+                return;
+            }
+            if (target == root) {
+                exists[index] = true;
+                return;
+            }
+            if (!exists[index]) {
+                exists(target, root.left, index);
+            }
+            if (!exists[index]) {
+                exists(target, root.right, index);
+            }
+        }
+
+        private TreeNode dfs(TreeNode root, TreeNode p, TreeNode q) {
+            if (root == null || p == root || q == root) {
+                return root;
+            }
+            TreeNode left = lowestCommonAncestor(root.left, p, q);
+            TreeNode right = lowestCommonAncestor(root.right, p, q);
+            if (left != null && right != null) {
+                return root;
+            }
+            return left != null ? left : right;
+        }
+    }
+
+    public static class Solution2 {
+        /*
+         * This still checks nodes existence.
+         */
+        int found = 0;
+
+        public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+            TreeNode lca = lca(root, p, q);
+            return found == 2 ? lca : null;
+        }
+
+        private TreeNode lca(TreeNode root, TreeNode p, TreeNode q) {
+            if (root == null) {
+                return null;
+            }
+            TreeNode left = lca(root.left, p, q);
+            TreeNode right = lca(root.right, p, q);
+            if (root == p || root == q) {
+                found++;
+                return root;
+            }
+            return (left != null && right != null) ? root : left != null ? left : right;
+        }
+    }
+
+    public static class Solution3 {
+        /*
+         * Credit: https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree-ii/solutions/944963/beat-96-recursion-without-count-easy-understanding/
+         */
+        public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+            if (root == null || p == null || q == null) {
+                return null;
+            }
+            TreeNode result = findLCA(root, p, q);
+            if (result == p) {
+                // if p equals result, we'll check the existence of q in the subtree of p
+                return findLCA(p, q, q) != null ? result : null;
+            } else if (result == q) {
+                // if q equals result, we'll check the existence of p in the subtree of q
+                return findLCA(q, p, p) != null ? result : null;
+            }
+            // otherwise, it's this case: (p != result && q != result) || result == null
+            return result;
+        }
+
+        private TreeNode findLCA(TreeNode root, TreeNode p, TreeNode q) {
+            if (root == null || p == root || q == root) {
+                return root;
+            }
+            TreeNode left = findLCA(root.left, p, q);
+            TreeNode right = findLCA(root.right, p, q);
+            if (left != null && right != null) {
+                return root;
+            }
+            return left != null ? left : right;
+        }
+    }
+}
+
+
+==================================================
+File: _1104.java
+Line count: 135
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import com.fishercoder.common.classes.TreeNode;
+import com.fishercoder.common.utils.CommonUtils;
+import com.fishercoder.common.utils.TreeUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
+public class _1104 {
+    public static class Solution1 {
+        /*
+         * This brute force solution is correct but results in TLE on LeetCode.
+         */
+        public List<Integer> pathInZigZagTree(int label) {
+            Deque<Integer> deque = buildZigZagOrderList(label);
+            CommonUtils.printDeque(deque);
+            TreeNode root = buildZigZagOrderTree(deque);
+            TreeUtils.printBinaryTree(root);
+            return dfs(root, label, new ArrayList<>());
+        }
+
+        private List<Integer> dfs(TreeNode root, int label, List<Integer> list) {
+            if (root == null) {
+                return list;
+            }
+            list.add(root.val);
+            if (root.val == label) {
+                return list;
+            }
+            dfs(root.left, label, list);
+            dfs(root.right, label, list);
+            if (list.get(list.size() - 1) == label) {
+                return list;
+            }
+            list.remove(list.size() - 1);
+            return list;
+        }
+
+        private TreeNode buildZigZagOrderTree(Deque<Integer> deque) {
+            TreeNode root = new TreeNode(deque.pollFirst());
+            Queue<TreeNode> queue = new LinkedList<>();
+            queue.offer(root);
+            while (!deque.isEmpty()) {
+                int size = queue.size();
+                for (int i = 0; i < size; i++) {
+                    TreeNode curr = queue.poll();
+                    curr.left = new TreeNode(deque.pollFirst());
+                    curr.right = new TreeNode(deque.pollFirst());
+                    queue.offer(curr.left);
+                    queue.offer(curr.right);
+                }
+            }
+            return root;
+        }
+
+        private Deque<Integer> buildZigZagOrderList(int label) {
+            Deque<Integer> deque = new LinkedList<>();
+            int num = 1;
+            int level = 2;
+            deque.add(num);
+            do {
+                num++;
+                List<Integer> newLevel = new ArrayList<>();
+                for (; num < Math.pow(2, level); num++) {
+                    newLevel.add(num);
+                }
+                num--;
+                if (level % 2 == 0) {
+                    Collections.reverse(newLevel);
+                }
+                deque.addAll(newLevel);
+                newLevel.clear();
+                level++;
+            } while (deque.getLast() < label);
+            return deque;
+        }
+    }
+
+    public static class Solution2 {
+        /*
+         * We'll directly compute the index of its parent, it'll be much faster this way.
+         */
+        public List<Integer> pathInZigZagTree(int label) {
+            List<List<Integer>> lists = buildZigZagOrderList(label);
+            List<Integer> result = new ArrayList<>();
+            int index = findIndex(lists.get(lists.size() - 1), label);
+            result.add(label);
+            for (int i = lists.size() - 2; i >= 0; i--) {
+                index /= 2;
+                result.add(lists.get(i).get(index));
+            }
+            Collections.sort(result);
+            return result;
+        }
+
+        private int findIndex(List<Integer> level, int label) {
+            for (int i = 0; i < level.size(); i++) {
+                if (level.get(i) == label) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private List<List<Integer>> buildZigZagOrderList(int label) {
+            List<List<Integer>> lists = new ArrayList<>();
+            int num = 1;
+            int level = 2;
+            lists.add(Arrays.asList(num));
+            if (label == 1) {
+                return lists;
+            }
+            List<Integer> newLevel = new ArrayList<>();
+            do {
+                newLevel.clear();
+                num++;
+                for (; num < Math.pow(2, level); num++) {
+                    newLevel.add(num);
+                }
+                num--;
+                if (level % 2 == 0) {
+                    Collections.reverse(newLevel);
+                }
+                lists.add(new ArrayList<>(newLevel));
+                level++;
+            } while (newLevel.get(0) < label && newLevel.get(newLevel.size() - 1) < label);
+            return lists;
+        }
+    }
+}
+
+
+==================================================
+File: _1325.java
+Line count: 129
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import com.fishercoder.common.classes.TreeNode;
+
+/*
+ * 1325. Delete Leaves With a Given Value
+ *
+ * Given a binary tree root and an integer target, delete all the leaf nodes with value target.
+ * Note that once you delete a leaf node with value target, if it's parent node becomes a leaf node and has the value target,
+ * it should also be deleted (you need to continue doing that until you can't).
+ *
+ * Example 1:
+ *        1             1              1
+ *       / \           / \              \
+ *      2  3    ->    2  3    ->         3
+ *     /  / \             \               \
+ *    2   2 4             4               4
+ *
+ * Input: root = [1,2,3,2,null,2,4], target = 2
+ * Output: [1,null,3,null,4]
+ * Explanation: Leaf nodes in green with value (target = 2) are removed (Picture in left).
+ * After removing, new nodes become leaf nodes with value (target = 2) (Picture in center).
+ *
+ * Example 2:
+ *          1          1
+ *         / \        /
+ *        3  3  ->   3
+ *       / \          \
+ *      3  2          2
+ *
+ * Input: root = [1,3,3,3,2], target = 3
+ * Output: [1,3,null,null,2]
+ *
+ * Example 3:
+ *         1              1            1          1
+ *        /              /            /
+ *       2              2            2
+ *      /       ->     /      ->             ->
+ *     2              2
+ *    /
+ *   2
+ *
+ * Input: root = [1,2,null,2,null,2], target = 2
+ * Output: [1]
+ * Explanation: Leaf nodes in green with value (target = 2) are removed at each step.
+ *
+ * Example 4:
+ *          1
+ *         / \    ->
+ *        1  1
+ * Input: root = [1,1,1], target = 1
+ * Output: []
+ *
+ * Example 5:
+ *         1             1
+ *        / \    ->     / \
+ *       2  3          2  3
+ *
+ * Input: root = [1,2,3], target = 1
+ * Output: [1,2,3]
+ *
+ * Constraints:
+ * 1 <= target <= 1000
+ * Each tree has at most 3000 nodes.
+ * Each node's value is between [1, 1000].
+ * */
+public class _1325 {
+    public static class Solution1 {
+        /*
+         * my original but verbose solution
+         */
+        public TreeNode removeLeafNodes(TreeNode root, int target) {
+            while (hasTargetLeafNodes(root, target)) {
+                root = removeLeafNodes(target, root);
+            }
+            return root;
+        }
+
+        private TreeNode removeLeafNodes(int target, TreeNode root) {
+            if (root == null) {
+                return root;
+            }
+            if (root.val == target && root.left == null && root.right == null) {
+                root = null;
+                return root;
+            }
+            if (root.left != null
+                    && root.left.val == target
+                    && root.left.left == null
+                    && root.left.right == null) {
+                root.left = null;
+            }
+            if (root.right != null
+                    && root.right.val == target
+                    && root.right.left == null
+                    && root.right.right == null) {
+                root.right = null;
+            }
+            removeLeafNodes(target, root.left);
+            removeLeafNodes(target, root.right);
+            return root;
+        }
+
+        private boolean hasTargetLeafNodes(TreeNode root, int target) {
+            if (root == null) {
+                return false;
+            }
+            if (root.left == null && root.right == null && root.val == target) {
+                return true;
+            }
+            return hasTargetLeafNodes(root.left, target) || hasTargetLeafNodes(root.right, target);
+        }
+    }
+
+    public static class Solution2 {
+        /*A much more concise and efficient solution.*/
+        public TreeNode removeLeafNodes(TreeNode root, int target) {
+            if (root == null) {
+                return root;
+            }
+            root.left = removeLeafNodes(root.left, target);
+            root.right = removeLeafNodes(root.right, target);
+            if (root.left == null && root.right == null && root.val == target) {
+                return null;
+            }
+            return root;
+        }
+    }
+}
+
+
+==================================================
+File: _1466.java
+Line count: 107
+==================================================
+Content:
+package com.fishercoder.solutions.secondthousand;
+
+import java.util.*;
+
+public class _1466 {
+    public static class Solution1 {
+        public int minReorder(int n, int[][] connections) {
+            // key is entering city, value is departure city
+            Map<Integer, Set<Integer>> map = new HashMap<>();
+            Queue<Integer> queue = new LinkedList<>();
+            int minReorder = 0;
+            Set<Integer> visited = new HashSet<>();
+            for (int i = 0; i < n; i++) {
+                visited.add(i);
+            }
+
+            // key is departure city, value is entering city
+            Map<Integer, Set<Integer>> reverseMap = new HashMap<>();
+            for (int[] con : connections) {
+                if (!map.containsKey(con[1])) {
+                    map.put(con[1], new HashSet<>());
+                }
+                map.get(con[1]).add(con[0]);
+
+                if (!reverseMap.containsKey(con[0])) {
+                    reverseMap.put(con[0], new HashSet<>());
+                }
+                reverseMap.get(con[0]).add(con[1]);
+
+                // for all those directly connected to city 0, must be reordered if not yet
+                // and they are the start nodes of BFS
+                if (con[0] == 0) {
+                    minReorder++;
+                    queue.offer(con[1]);
+                    visited.remove(con[1]);
+                    visited.remove(0);
+                }
+                if (con[1] == 0) {
+                    queue.offer(con[0]);
+                    visited.remove(0);
+                }
+            }
+            while (!queue.isEmpty() || !visited.isEmpty()) {
+                int curr = queue.poll();
+                visited.remove(curr);
+                if (map.containsKey(curr)) {
+                    Set<Integer> departureCityList = map.get(curr);
+                    for (int city : departureCityList) {
+                        if (visited.contains(city)) {
+                            queue.offer(city);
+                        }
+                    }
+                }
+                if (reverseMap.containsKey(curr)) {
+                    Set<Integer> enteringCityList = reverseMap.get(curr);
+                    for (int city : enteringCityList) {
+                        if (visited.contains(city)) {
+                            queue.offer(city);
+                            minReorder++;
+                        }
+                    }
+                }
+            }
+            return minReorder;
+        }
+    }
+
+    public static class Solution2 {
+        /*
+         * build an adjacency list and BFS
+         */
+        public int minReorder(int n, int[][] connections) {
+            // int[] in the below map holds two integers, the first one means the node, the second
+            // one means the direction:
+            // 0 means it's pointing to the key, i.e. doesn't need to be flipped,
+            // 1 means it's the opposite direction, i.e. needs to be flipped
+            Map<Integer, List<int[]>> adjList = new HashMap<>();
+            for (int[] conn : connections) {
+                adjList.computeIfAbsent(conn[0], k -> new ArrayList<>())
+                        .add(new int[] {conn[1], 1});
+                adjList.computeIfAbsent(conn[1], k -> new ArrayList<>())
+                        .add(new int[] {conn[0], 0});
+            }
+            int count = 0;
+            Queue<Integer> queue = new LinkedList<>();
+            queue.offer(0);
+            boolean[] visited = new boolean[n];
+            visited[0] = true;
+            while (!queue.isEmpty()) {
+                Integer curr = queue.poll();
+                if (!adjList.containsKey(curr)) {
+                    continue;
+                }
+                for (int[] next : adjList.get(curr)) {
+                    int neighbor = next[0];
+                    int flip = next[1];
+                    if (!visited[neighbor]) {
+                        count += flip;
+                        visited[neighbor] = true;
+                        queue.offer(neighbor);
+                    }
+                }
+            }
+            return count;
+        }
+    }
+}
+
+
